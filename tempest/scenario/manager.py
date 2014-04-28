@@ -799,7 +799,7 @@ class NetworkScenarioTest(OfficialClientTest):
         server_ssh = self.get_remote_client(server_ip_address, server_ssh_login, server_private_key)
         server = iperf(status='Server', server_ssh=server_ssh)
         server.start()
-        server.join(150)
+        server.join(300)
         client_ssh = self.get_remote_client(client_ip_address, client_ssh_login, client_private_key)
         client = iperf(status='Client', ip_address=server_ip_address, client_ssh=client_ssh)
         client.start()
