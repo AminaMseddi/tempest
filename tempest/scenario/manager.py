@@ -67,18 +67,15 @@ class OfficialClientTest(tempest.test.BaseTestCase):
             network_resources=cls.network_resources)
 
         username, password, tenant_name = cls.credentials()
-
         cls.manager = clients.OfficialClientManager(
             username, password, tenant_name)
         cls.compute_client = cls.manager.compute_client
         cls.image_client = cls.manager.image_client
-        cls.baremetal_client = cls.manager.baremetal_client
         cls.identity_client = cls.manager.identity_client
         cls.network_client = cls.manager.network_client
         cls.volume_client = cls.manager.volume_client
         cls.object_storage_client = cls.manager.object_storage_client
         cls.orchestration_client = cls.manager.orchestration_client
-        cls.data_processing_client = cls.manager.data_processing_client
         cls.resource_keys = {}
         cls.os_resources = []
 
@@ -791,19 +788,18 @@ class NetworkScenarioTest(OfficialClientTest):
                                                   private_key)
             linux_client.validate_authentication()
 
-
     def _check_between_vms_bandwidth(self, server_ip_address, server_private_key, server_ssh_login, client_ip_address,
                                      client_private_key, client_ssh_login):
         """
         First, get ssh client of the client and the server,
-         Then, install iprf on each machine
+         Then, install iperf on each machine
          Then, run iperf on server mode on the server and on client mode on the client and get bandwidth
          Finally test if bandwidth isn't null
         """
         server_ssh = self.get_remote_client(server_ip_address, server_ssh_login, server_private_key)
         server = iperf(status='Server', server_ssh=server_ssh)
         server.start()
-        server.join(300)
+        server.join(150)
         client_ssh = self.get_remote_client(client_ip_address, client_ssh_login, client_private_key)
         client = iperf(status='Client', ip_address=server_ip_address, client_ssh=client_ssh)
         client.start()
