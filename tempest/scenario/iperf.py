@@ -13,14 +13,14 @@ class iperf(threading.Thread):
         if kwargs['status']=='Client':
             self.ip_address = kwargs['ip_address']
             self.client_ssh = kwargs['client_ssh']
-            self.client = True
+            self.is_client = True
             self.bandwidth = None
         else:
-            self.client = False
+            self.is_client = False
             self.server_ssh = kwargs['server_ssh']
 
     def run(self):
-        if self.client:
+        if self.is_client:
 
             self._install_iperf(self.client_ssh)
             self._client_mode()
