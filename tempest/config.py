@@ -60,16 +60,16 @@ IdentityGroup = [
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the identity service."),
     cfg.StrOpt('username',
-               default=None,
+               default='demo',
                help="Username to use for Nova API requests."),
     cfg.StrOpt('tenant_name',
-               default=None,
+               default='demo',
                help="Tenant name to use for Nova API requests."),
     cfg.StrOpt('admin_role',
                default='admin',
                help="Role required to administrate keystone."),
     cfg.StrOpt('password',
-               default=None,
+               default='password',
                help="API key to use when authenticating.",
                secret=True),
     cfg.StrOpt('alt_username',
@@ -85,15 +85,15 @@ IdentityGroup = [
                help="API key to use when authenticating as alternate user.",
                secret=True),
     cfg.StrOpt('admin_username',
-               default=None,
+               default='admin',
                help="Administrative Username to use for "
                     "Keystone API requests."),
     cfg.StrOpt('admin_tenant_name',
-               default=None,
+               default='admin',
                help="Administrative Tenant name to use for Keystone API "
                     "requests."),
     cfg.StrOpt('admin_password',
-               default=None,
+               default='password',
                help="API key to use when authenticating as admin.",
                secret=True),
 ]
@@ -119,22 +119,22 @@ compute_group = cfg.OptGroup(name='compute',
 
 ComputeGroup = [
     cfg.BoolOpt('allow_tenant_isolation',
-                default=False,
+                default=True,
                 help="Allows test cases to create/destroy tenants and "
                      "users. This option enables isolated test cases and "
                      "better parallel execution, but also requires that "
                      "OpenStack Identity API admin credentials are known."),
     cfg.StrOpt('image_ref',
-               default="{$IMAGE_ID}",
-               help="Valid primary image reference to be used in tests."),
+               default="eddf9d0c-0a84-4173-a6a0-4816c8129884",
+               help="Valid secondary image reference to be used in tests."),
     cfg.StrOpt('image_ref_alt',
-               default="{$IMAGE_ID_ALT}",
+               default="eddf9d0c-0a84-4173-a6a0-4816c8129884",
                help="Valid secondary image reference to be used in tests."),
     cfg.StrOpt('flavor_ref',
-               default="1",
+               default="3",
                help="Valid primary flavor to use in tests."),
     cfg.StrOpt('flavor_ref_alt',
-               default="2",
+               default="4",
                help='Valid secondary flavor to be used in tests.'),
     cfg.StrOpt('image_ssh_user',
                default="root",
@@ -143,7 +143,7 @@ ComputeGroup = [
                default="password",
                help="Password used to authenticate to an instance."),
     cfg.StrOpt('image_alt_ssh_user',
-               default="root",
+               default="ubuntu",
                help="User name used to authenticate to an instance using "
                     "the alternate image."),
     cfg.StrOpt('image_alt_ssh_password',
@@ -154,33 +154,20 @@ ComputeGroup = [
                default=10,
                help="Time in seconds between build status checks."),
     cfg.IntOpt('build_timeout',
-               default=300,
+               default=400,
                help="Timeout in seconds to wait for an instance to build."),
     cfg.BoolOpt('run_ssh',
                 default=False,
                 help="Should the tests ssh to instances?"),
-    cfg.StrOpt('ssh_auth_method',
-               default='keypair',
-               help="Auth method used for authenticate to the instance. "
-                    "Valid choices are: keypair, configured, adminpass. "
-                    "keypair: start the servers with an ssh keypair. "
-                    "configured: use the configured user and password. "
-                    "adminpass: use the injected adminPass. "
-                    "disabled: avoid using ssh when it is an option."),
-    cfg.StrOpt('ssh_connect_method',
-               default='fixed',
-               help="How to connect to the instance? "
-                    "fixed: using the first ip belongs the fixed network "
-                    "floating: creating and using a floating ip"),
     cfg.StrOpt('ssh_user',
-               default='root',
+               default='ubuntu',
                help="User name used to authenticate to an instance."),
     cfg.IntOpt('ping_timeout',
-               default=120,
+               default=150,
                help="Timeout in seconds to wait for ping to "
                     "succeed."),
     cfg.IntOpt('ssh_timeout',
-               default=300,
+               default=200,
                help="Timeout in seconds to wait for authentication to "
                     "succeed."),
     cfg.IntOpt('ready_wait',
@@ -188,7 +175,7 @@ ComputeGroup = [
                help="Additional wait time for clean state, when there is "
                     "no OS-EXT-STS extension available"),
     cfg.IntOpt('ssh_channel_timeout',
-               default=60,
+               default=100,
                help="Timeout in seconds to wait for output from ssh "
                     "channel."),
     cfg.StrOpt('fixed_network_name',
@@ -202,7 +189,7 @@ ComputeGroup = [
                help="IP version used for SSH connections."),
     cfg.BoolOpt('use_floatingip_for_ssh',
                 default=True,
-                help="Does SSH use Floating IPs?"),
+                help="Dose the SSH uses Floating IP?"),
     cfg.StrOpt('catalog_type',
                default='compute',
                help="Catalog type of the Compute service."),
@@ -234,7 +221,13 @@ ComputeGroup = [
                     'for removing from a host.  -1 never offload, 0 offload '
                     'when shelved. This time should be the same as the time '
                     'of nova.conf, and some tests will run for as long as the '
-                    'time.')
+                    'time.'),
+    cfg.StrOpt('iperf_file',
+               default='iperf_2.0.5-2_amd64',
+               help=""),
+    cfg.StrOpt('iperf_url',
+               default='http://iperf.fr/download/iperf_2.0.5/iperf_2.0.5-2_amd64',
+               help="")
 ]
 
 compute_features_group = cfg.OptGroup(name='compute-feature-enabled',
@@ -259,15 +252,12 @@ ComputeFeaturesGroup = [
                 default=False,
                 help="Does the test environment support changing the admin "
                      "password?"),
+    cfg.BoolOpt('create_image',
+                default=False,
+                help="Does the test environment support snapshots?"),
     cfg.BoolOpt('resize',
                 default=False,
                 help="Does the test environment support resizing?"),
-    cfg.BoolOpt('pause',
-                default=True,
-                help="Does the test environment support pausing?"),
-    cfg.BoolOpt('suspend',
-                default=True,
-                help="Does the test environment support suspend/resume?"),
     cfg.BoolOpt('live_migration',
                 default=False,
                 help="Does the test environment support live migration "
@@ -292,14 +282,14 @@ compute_admin_group = cfg.OptGroup(name='compute-admin',
 
 ComputeAdminGroup = [
     cfg.StrOpt('username',
-               default=None,
+               default='admin',
                help="Administrative Username to use for Nova API requests."),
     cfg.StrOpt('tenant_name',
-               default=None,
+               default='admin',
                help="Administrative Tenant name to use for Nova API "
                     "requests."),
     cfg.StrOpt('password',
-               default=None,
+               default='password',
                help="API key to use when authenticating as admin.",
                secret=True),
 ]
@@ -382,14 +372,6 @@ NetworkGroup = [
                default="",
                help="Id of the public router that provides external "
                     "connectivity"),
-    cfg.IntOpt('build_timeout',
-               default=300,
-               help="Timeout in seconds to wait for network operation to "
-                    "complete."),
-    cfg.IntOpt('build_interval',
-               default=10,
-               help="Time in seconds between network operation status "
-                    "checks."),
 ]
 
 network_feature_group = cfg.OptGroup(name='network-feature-enabled',
@@ -403,15 +385,6 @@ NetworkFeaturesGroup = [
                 default=['all'],
                 help='A list of enabled network extensions with a special '
                      'entry all which indicates every extension is enabled'),
-]
-
-queuing_group = cfg.OptGroup(name='queuing',
-                             title='Queuing Service')
-
-QueuingGroup = [
-    cfg.StrOpt('catalog_type',
-               default='queuing',
-               help='Catalog type of the Queuing service.'),
 ]
 
 volume_group = cfg.OptGroup(name='volume',
@@ -454,9 +427,6 @@ VolumeGroup = [
     cfg.StrOpt('disk_format',
                default='raw',
                help='Disk format to use when copying a volume to image'),
-    cfg.IntOpt('volume_size',
-               default=1,
-               help='Default size in GB for volumes created by volumes tests'),
 ]
 
 volume_feature_group = cfg.OptGroup(name='volume-feature-enabled',
@@ -469,9 +439,6 @@ VolumeFeaturesGroup = [
     cfg.BoolOpt('backup',
                 default=True,
                 help='Runs Cinder volumes backup test'),
-    cfg.BoolOpt('snapshot',
-                default=True,
-                help='Runs Cinder volume snapshot test'),
     cfg.ListOpt('api_extensions',
                 default=['all'],
                 help='A list of enabled volume extensions with a special '
@@ -572,7 +539,7 @@ OrchestrationGroup = [
                default=1,
                help="Time in seconds between build status checks."),
     cfg.IntOpt('build_timeout',
-               default=1200,
+               default=600,
                help="Timeout in seconds to wait for a stack to build."),
     cfg.StrOpt('instance_type',
                default='m1.micro',
@@ -587,9 +554,6 @@ OrchestrationGroup = [
                help="Name of existing keypair to launch servers with."),
     cfg.IntOpt('max_template_size',
                default=524288,
-               help="Value must match heat configuration of the same name."),
-    cfg.IntOpt('max_resources_per_stack',
-               default=1000,
                help="Value must match heat configuration of the same name."),
 ]
 
@@ -654,9 +618,6 @@ BotoGroup = [
     cfg.StrOpt('aws_access',
                default=None,
                help="AWS Access Key"),
-    cfg.StrOpt('aws_zone',
-               default="nova",
-               help="AWS Zone for EC2 tests"),
     cfg.StrOpt('s3_materials_path',
                default="/opt/stack/devstack/files/images/"
                        "s3-materials/cirros-0.3.0",
@@ -735,23 +696,22 @@ scenario_group = cfg.OptGroup(name='scenario', title='Scenario Test Options')
 
 ScenarioGroup = [
     cfg.StrOpt('img_dir',
-               default='/opt/stack/new/devstack/files/images/'
-               'cirros-0.3.1-x86_64-uec',
+               default='/home/ubuntu/devstack/files',
                help='Directory containing image files'),
     cfg.StrOpt('qcow2_img_file',
-               default='cirros-0.3.1-x86_64-disk.img',
+               default='precise-server-cloudimg-amd64-disk1.img',
                help='QCOW2 image file name'),
     cfg.StrOpt('ami_img_file',
-               default='cirros-0.3.1-x86_64-blank.img',
+               default='precise-server-cloudimg-amd64.img',
                help='AMI image file name'),
     cfg.StrOpt('ari_img_file',
-               default='cirros-0.3.1-x86_64-initrd',
+               default='precise-server-cloudimg-amd64-initrd',
                help='ARI image file name'),
     cfg.StrOpt('aki_img_file',
-               default='cirros-0.3.1-x86_64-vmlinuz',
+               default='precise-server-cloudimg-amd64-vmlinuz',
                help='AKI image file name'),
     cfg.StrOpt('ssh_user',
-               default='cirros',
+               default='ubuntu',
                help='ssh username for the image file'),
     cfg.IntOpt(
         'large_ops_number',
@@ -789,18 +749,15 @@ ServiceAvailableGroup = [
     cfg.BoolOpt('horizon',
                 default=True,
                 help="Whether or not Horizon is expected to be available"),
-    cfg.BoolOpt('sahara',
+    cfg.BoolOpt('savanna',
                 default=False,
-                help="Whether or not Sahara is expected to be available"),
+                help="Whether or not Savanna is expected to be available"),
     cfg.BoolOpt('ironic',
                 default=False,
                 help="Whether or not Ironic is expected to be available"),
     cfg.BoolOpt('trove',
                 default=False,
                 help="Whether or not Trove is expected to be available"),
-    cfg.BoolOpt('marconi',
-                default=False,
-                help="Whether or not Marconi is expected to be available"),
 ]
 
 debug_group = cfg.OptGroup(name="debug",
@@ -810,26 +767,6 @@ DebugGroup = [
     cfg.BoolOpt('enable',
                 default=True,
                 help="Enable diagnostic commands"),
-    cfg.StrOpt('trace_requests',
-               default='',
-               help="""A regex to determine which requests should be traced.
-
-This is a regex to match the caller for rest client requests to be able to
-selectively trace calls out of specific classes and methods. It largely
-exists for test development, and is not expected to be used in a real deploy
-of tempest. This will be matched against the discovered ClassName:method
-in the test environment.
-
-Expected values for this field are:
-
- * ClassName:test_method_name - traces one test_method
- * ClassName:setUp(Class) - traces specific setup functions
- * ClassName:tearDown(Class) - traces specific teardown functions
- * ClassName:_run_cleanups - traces the cleanup functions
-
-If nothing is specified, this feature is not enabled. To trace everything
-specify .* as the regex.
-""")
 ]
 
 input_scenario_group = cfg.OptGroup(name="input-scenario",
@@ -838,21 +775,20 @@ input_scenario_group = cfg.OptGroup(name="input-scenario",
 
 InputScenarioGroup = [
     cfg.StrOpt('image_regex',
-               default='^cirros-0.3.1-x86_64-uec$',
+               default='^precise-server-cloudimg-amd64$',
                help="Matching images become parameters for scenario tests"),
     cfg.StrOpt('flavor_regex',
-               default='^m1.nano$',
+               default='^m1.medium$',
                help="Matching flavors become parameters for scenario tests"),
     cfg.StrOpt('non_ssh_image_regex',
                default='^.*[Ww]in.*$',
                help="SSH verification in tests is skipped"
                     "for matching images"),
     cfg.StrOpt('ssh_user_regex',
-               default="[[\"^.*[Cc]irros.*$\", \"root\"]]",
+               default="[[\"^.*[Ub]buntu.*$\", \"root\"]]",
                help="List of user mapped to regex "
                     "to matching image names."),
 ]
-
 
 baremetal_group = cfg.OptGroup(name='baremetal',
                                title='Baremetal provisioning service options')
@@ -860,29 +796,13 @@ baremetal_group = cfg.OptGroup(name='baremetal',
 BaremetalGroup = [
     cfg.StrOpt('catalog_type',
                default='baremetal',
-               help="Catalog type of the baremetal provisioning service"),
-    cfg.BoolOpt('driver_enabled',
-                default=False,
-                help="Whether the Ironic nova-compute driver is enabled"),
+               help="Catalog type of the baremetal provisioning service."),
     cfg.StrOpt('endpoint_type',
                default='publicURL',
                choices=['public', 'admin', 'internal',
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the baremetal provisioning "
-                    "service"),
-    cfg.IntOpt('active_timeout',
-               default=300,
-               help="Timeout for Ironic node to completely provision"),
-    cfg.IntOpt('association_timeout',
-               default=10,
-               help="Timeout for association of Nova instance and Ironic "
-                    "node"),
-    cfg.IntOpt('power_timeout',
-               default=20,
-               help="Timeout for Ironic power transitions."),
-    cfg.IntOpt('unprovision_timeout',
-               default=20,
-               help="Timeout for unprovisioning an Ironic node.")
+                    "service."),
 ]
 
 cli_group = cfg.OptGroup(name='cli', title="cli Configuration Options")
@@ -926,7 +846,6 @@ def register_opts():
     register_opt_group(cfg.CONF, network_group, NetworkGroup)
     register_opt_group(cfg.CONF, network_feature_group,
                        NetworkFeaturesGroup)
-    register_opt_group(cfg.CONF, queuing_group, QueuingGroup)
     register_opt_group(cfg.CONF, volume_group, VolumeGroup)
     register_opt_group(cfg.CONF, volume_feature_group,
                        VolumeFeaturesGroup)
@@ -978,7 +897,6 @@ class TempestConfigPrivate(object):
             'object-storage-feature-enabled']
         self.database = cfg.CONF.database
         self.orchestration = cfg.CONF.orchestration
-        self.queuing = cfg.CONF.queuing
         self.telemetry = cfg.CONF.telemetry
         self.dashboard = cfg.CONF.dashboard
         self.data_processing = cfg.CONF.data_processing
