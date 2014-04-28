@@ -117,3 +117,6 @@ class RemoteClient():
         # Get pid(s) of a process/program
         cmd = "ps -ef | grep %s | grep -v 'grep' | awk {'print $1'}" % pr_name
         return self.exec_command(cmd).split('\n')
+
+    def put_file(self, file_name, location):
+        self.ssh_client.put_file(file_name, location)
