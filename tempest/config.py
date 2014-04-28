@@ -60,16 +60,16 @@ IdentityGroup = [
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the identity service."),
     cfg.StrOpt('username',
-               default='demo',
+               default=None,
                help="Username to use for Nova API requests."),
     cfg.StrOpt('tenant_name',
-               default='demo',
+               default=None,
                help="Tenant name to use for Nova API requests."),
     cfg.StrOpt('admin_role',
                default='admin',
                help="Role required to administrate keystone."),
     cfg.StrOpt('password',
-               default='password',
+               default=None,
                help="API key to use when authenticating.",
                secret=True),
     cfg.StrOpt('alt_username',
@@ -85,15 +85,15 @@ IdentityGroup = [
                help="API key to use when authenticating as alternate user.",
                secret=True),
     cfg.StrOpt('admin_username',
-               default='admin',
+               default=None,
                help="Administrative Username to use for "
                     "Keystone API requests."),
     cfg.StrOpt('admin_tenant_name',
-               default='admin',
+               default=None,
                help="Administrative Tenant name to use for Keystone API "
                     "requests."),
     cfg.StrOpt('admin_password',
-               default='password',
+               default=None,
                help="API key to use when authenticating as admin.",
                secret=True),
 ]
@@ -119,22 +119,22 @@ compute_group = cfg.OptGroup(name='compute',
 
 ComputeGroup = [
     cfg.BoolOpt('allow_tenant_isolation',
-                default=True,
+                default=False,
                 help="Allows test cases to create/destroy tenants and "
                      "users. This option enables isolated test cases and "
                      "better parallel execution, but also requires that "
                      "OpenStack Identity API admin credentials are known."),
     cfg.StrOpt('image_ref',
-               default="eddf9d0c-0a84-4173-a6a0-4816c8129884",
-               help="Valid secondary image reference to be used in tests."),
+               default="{$IMAGE_ID}",
+               help="Valid primary image reference to be used in tests."),
     cfg.StrOpt('image_ref_alt',
-               default="eddf9d0c-0a84-4173-a6a0-4816c8129884",
+               default="{$IMAGE_ID_ALT}",
                help="Valid secondary image reference to be used in tests."),
     cfg.StrOpt('flavor_ref',
-               default="3",
+               default="1",
                help="Valid primary flavor to use in tests."),
     cfg.StrOpt('flavor_ref_alt',
-               default="4",
+               default="2",
                help='Valid secondary flavor to be used in tests.'),
     cfg.StrOpt('image_ssh_user',
                default="root",
@@ -143,7 +143,7 @@ ComputeGroup = [
                default="password",
                help="Password used to authenticate to an instance."),
     cfg.StrOpt('image_alt_ssh_user',
-               default="ubuntu",
+               default="root",
                help="User name used to authenticate to an instance using "
                     "the alternate image."),
     cfg.StrOpt('image_alt_ssh_password',
@@ -154,7 +154,7 @@ ComputeGroup = [
                default=10,
                help="Time in seconds between build status checks."),
     cfg.IntOpt('build_timeout',
-               default=400,
+               default=300,
                help="Timeout in seconds to wait for an instance to build."),
     cfg.BoolOpt('run_ssh',
                 default=False,
@@ -173,10 +173,10 @@ ComputeGroup = [
                     "fixed: using the first ip belongs the fixed network "
                     "floating: creating and using a floating ip"),
     cfg.StrOpt('ssh_user',
-               default='ubuntu',
+               default='root',
                help="User name used to authenticate to an instance."),
     cfg.IntOpt('ping_timeout',
-               default=150,
+               default=120,
                help="Timeout in seconds to wait for ping to "
                     "succeed."),
     cfg.IntOpt('ssh_timeout',
@@ -188,7 +188,7 @@ ComputeGroup = [
                help="Additional wait time for clean state, when there is "
                     "no OS-EXT-STS extension available"),
     cfg.IntOpt('ssh_channel_timeout',
-               default=300,
+               default=60,
                help="Timeout in seconds to wait for output from ssh "
                     "channel."),
     cfg.StrOpt('fixed_network_name',
@@ -298,14 +298,14 @@ compute_admin_group = cfg.OptGroup(name='compute-admin',
 
 ComputeAdminGroup = [
     cfg.StrOpt('username',
-               default='admin',
+               default=None,
                help="Administrative Username to use for Nova API requests."),
     cfg.StrOpt('tenant_name',
-               default='admin',
+               default=None,
                help="Administrative Tenant name to use for Nova API "
                     "requests."),
     cfg.StrOpt('password',
-               default='password',
+               default=None,
                help="API key to use when authenticating as admin.",
                secret=True),
 ]
@@ -389,11 +389,11 @@ NetworkGroup = [
                help="Id of the public router that provides external "
                     "connectivity"),
     cfg.IntOpt('build_timeout',
-               default=500,
+               default=300,
                help="Timeout in seconds to wait for network operation to "
                     "complete."),
     cfg.IntOpt('build_interval',
-               default=100,
+               default=10,
                help="Time in seconds between network operation status "
                     "checks."),
 ]
@@ -741,22 +741,23 @@ scenario_group = cfg.OptGroup(name='scenario', title='Scenario Test Options')
 
 ScenarioGroup = [
     cfg.StrOpt('img_dir',
-               default='/home/ubuntu/devstack/files',
+               default='/opt/stack/new/devstack/files/images/'
+               'cirros-0.3.1-x86_64-uec',
                help='Directory containing image files'),
     cfg.StrOpt('qcow2_img_file',
-               default='precise-server-cloudimg-amd64-disk1.img',
+               default='cirros-0.3.1-x86_64-disk.img',
                help='QCOW2 image file name'),
     cfg.StrOpt('ami_img_file',
-               default='precise-server-cloudimg-amd64.img',
+               default='cirros-0.3.1-x86_64-blank.img',
                help='AMI image file name'),
     cfg.StrOpt('ari_img_file',
-               default='precise-server-cloudimg-amd64-initrd',
+               default='cirros-0.3.1-x86_64-initrd',
                help='ARI image file name'),
     cfg.StrOpt('aki_img_file',
-               default='precise-server-cloudimg-amd64-vmlinuz',
+               default='cirros-0.3.1-x86_64-vmlinuz',
                help='AKI image file name'),
     cfg.StrOpt('ssh_user',
-               default='ubuntu',
+               default='cirros',
                help='ssh username for the image file'),
     cfg.IntOpt(
         'large_ops_number',
@@ -843,17 +844,17 @@ input_scenario_group = cfg.OptGroup(name="input-scenario",
 
 InputScenarioGroup = [
     cfg.StrOpt('image_regex',
-               default='^precise-server-cloudimg-amd64$',
+               default='^cirros-0.3.1-x86_64-uec$',
                help="Matching images become parameters for scenario tests"),
     cfg.StrOpt('flavor_regex',
-               default='^m1.medium$',
+               default='^m1.nano$',
                help="Matching flavors become parameters for scenario tests"),
     cfg.StrOpt('non_ssh_image_regex',
                default='^.*[Ww]in.*$',
                help="SSH verification in tests is skipped"
                     "for matching images"),
     cfg.StrOpt('ssh_user_regex',
-               default="[[\"^.*[Ub]buntu.*$\", \"root\"]]",
+               default="[[\"^.*[Cc]irros.*$\", \"root\"]]",
                help="List of user mapped to regex "
                     "to matching image names."),
 ]
