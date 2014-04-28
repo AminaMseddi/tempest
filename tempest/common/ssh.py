@@ -16,6 +16,7 @@
 
 import cStringIO
 import select
+from scp import SCPClient
 import six
 import socket
 import time
@@ -149,3 +150,8 @@ class Client(object):
         """Raises an exception when we can not connect to server via ssh."""
         connection = self._get_ssh_connection()
         connection.close()
+
+    def put_file(self, file_name, location):
+        ssh = self._get_ssh_connection()
+        scp = SCPClient(ssh.get_transport())
+        scp.put(file_name, location)
