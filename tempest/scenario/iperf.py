@@ -11,7 +11,6 @@ class iperf(threading.Thread):
     def __init__(self, **kwargs):
         threading.Thread.__init__(self)
         if kwargs['status']=='Client':
-            LOG.debug("Continue4")
             self.ip_address = kwargs['ip_address']
             self.client_ssh = kwargs['client_ssh']
             self.client = True

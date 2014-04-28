@@ -159,6 +159,19 @@ ComputeGroup = [
     cfg.BoolOpt('run_ssh',
                 default=False,
                 help="Should the tests ssh to instances?"),
+    cfg.StrOpt('ssh_auth_method',
+               default='keypair',
+               help="Auth method used for authenticate to the instance. "
+                    "Valid choices are: keypair, configured, adminpass. "
+                    "keypair: start the servers with an ssh keypair. "
+                    "configured: use the configured user and password. "
+                    "adminpass: use the injected adminPass. "
+                    "disabled: avoid using ssh when it is an option."),
+    cfg.StrOpt('ssh_connect_method',
+               default='fixed',
+               help="How to connect to the instance? "
+                    "fixed: using the first ip belongs the fixed network "
+                    "floating: creating and using a floating ip"),
     cfg.StrOpt('ssh_user',
                default='ubuntu',
                help="User name used to authenticate to an instance."),
@@ -167,7 +180,7 @@ ComputeGroup = [
                help="Timeout in seconds to wait for ping to "
                     "succeed."),
     cfg.IntOpt('ssh_timeout',
-               default=200,
+               default=300,
                help="Timeout in seconds to wait for authentication to "
                     "succeed."),
     cfg.IntOpt('ready_wait',
@@ -175,7 +188,7 @@ ComputeGroup = [
                help="Additional wait time for clean state, when there is "
                     "no OS-EXT-STS extension available"),
     cfg.IntOpt('ssh_channel_timeout',
-               default=100,
+               default=300,
                help="Timeout in seconds to wait for output from ssh "
                     "channel."),
     cfg.StrOpt('fixed_network_name',
@@ -189,7 +202,7 @@ ComputeGroup = [
                help="IP version used for SSH connections."),
     cfg.BoolOpt('use_floatingip_for_ssh',
                 default=True,
-                help="Dose the SSH uses Floating IP?"),
+                help="Does SSH use Floating IPs?"),
     cfg.StrOpt('catalog_type',
                default='compute',
                help="Catalog type of the Compute service."),
@@ -252,12 +265,15 @@ ComputeFeaturesGroup = [
                 default=False,
                 help="Does the test environment support changing the admin "
                      "password?"),
-    cfg.BoolOpt('create_image',
-                default=False,
-                help="Does the test environment support snapshots?"),
     cfg.BoolOpt('resize',
                 default=False,
                 help="Does the test environment support resizing?"),
+    cfg.BoolOpt('pause',
+                default=True,
+                help="Does the test environment support pausing?"),
+    cfg.BoolOpt('suspend',
+                default=True,
+                help="Does the test environment support suspend/resume?"),
     cfg.BoolOpt('live_migration',
                 default=False,
                 help="Does the test environment support live migration "
@@ -372,6 +388,14 @@ NetworkGroup = [
                default="",
                help="Id of the public router that provides external "
                     "connectivity"),
+    cfg.IntOpt('build_timeout',
+               default=500,
+               help="Timeout in seconds to wait for network operation to "
+                    "complete."),
+    cfg.IntOpt('build_interval',
+               default=100,
+               help="Time in seconds between network operation status "
+                    "checks."),
 ]
 
 network_feature_group = cfg.OptGroup(name='network-feature-enabled',
@@ -385,6 +409,15 @@ NetworkFeaturesGroup = [
                 default=['all'],
                 help='A list of enabled network extensions with a special '
                      'entry all which indicates every extension is enabled'),
+]
+
+queuing_group = cfg.OptGroup(name='queuing',
+                             title='Queuing Service')
+
+QueuingGroup = [
+    cfg.StrOpt('catalog_type',
+               default='queuing',
+               help='Catalog type of the Queuing service.'),
 ]
 
 volume_group = cfg.OptGroup(name='volume',
@@ -427,6 +460,9 @@ VolumeGroup = [
     cfg.StrOpt('disk_format',
                default='raw',
                help='Disk format to use when copying a volume to image'),
+    cfg.IntOpt('volume_size',
+               default=1,
+               help='Default size in GB for volumes created by volumes tests'),
 ]
 
 volume_feature_group = cfg.OptGroup(name='volume-feature-enabled',
@@ -439,6 +475,9 @@ VolumeFeaturesGroup = [
     cfg.BoolOpt('backup',
                 default=True,
                 help='Runs Cinder volumes backup test'),
+    cfg.BoolOpt('snapshot',
+                default=True,
+                help='Runs Cinder volume snapshot test'),
     cfg.ListOpt('api_extensions',
                 default=['all'],
                 help='A list of enabled volume extensions with a special '
@@ -539,7 +578,7 @@ OrchestrationGroup = [
                default=1,
                help="Time in seconds between build status checks."),
     cfg.IntOpt('build_timeout',
-               default=600,
+               default=1200,
                help="Timeout in seconds to wait for a stack to build."),
     cfg.StrOpt('instance_type',
                default='m1.micro',
@@ -554,6 +593,9 @@ OrchestrationGroup = [
                help="Name of existing keypair to launch servers with."),
     cfg.IntOpt('max_template_size',
                default=524288,
+               help="Value must match heat configuration of the same name."),
+    cfg.IntOpt('max_resources_per_stack',
+               default=1000,
                help="Value must match heat configuration of the same name."),
 ]
 
@@ -618,6 +660,9 @@ BotoGroup = [
     cfg.StrOpt('aws_access',
                default=None,
                help="AWS Access Key"),
+    cfg.StrOpt('aws_zone',
+               default="nova",
+               help="AWS Zone for EC2 tests"),
     cfg.StrOpt('s3_materials_path',
                default="/opt/stack/devstack/files/images/"
                        "s3-materials/cirros-0.3.0",
@@ -749,15 +794,18 @@ ServiceAvailableGroup = [
     cfg.BoolOpt('horizon',
                 default=True,
                 help="Whether or not Horizon is expected to be available"),
-    cfg.BoolOpt('savanna',
+    cfg.BoolOpt('sahara',
                 default=False,
-                help="Whether or not Savanna is expected to be available"),
+                help="Whether or not Sahara is expected to be available"),
     cfg.BoolOpt('ironic',
                 default=False,
                 help="Whether or not Ironic is expected to be available"),
     cfg.BoolOpt('trove',
                 default=False,
                 help="Whether or not Trove is expected to be available"),
+    cfg.BoolOpt('marconi',
+                default=False,
+                help="Whether or not Marconi is expected to be available"),
 ]
 
 debug_group = cfg.OptGroup(name="debug",
@@ -767,6 +815,26 @@ DebugGroup = [
     cfg.BoolOpt('enable',
                 default=True,
                 help="Enable diagnostic commands"),
+    cfg.StrOpt('trace_requests',
+               default='',
+               help="""A regex to determine which requests should be traced.
+
+This is a regex to match the caller for rest client requests to be able to
+selectively trace calls out of specific classes and methods. It largely
+exists for test development, and is not expected to be used in a real deploy
+of tempest. This will be matched against the discovered ClassName:method
+in the test environment.
+
+Expected values for this field are:
+
+ * ClassName:test_method_name - traces one test_method
+ * ClassName:setUp(Class) - traces specific setup functions
+ * ClassName:tearDown(Class) - traces specific teardown functions
+ * ClassName:_run_cleanups - traces the cleanup functions
+
+If nothing is specified, this feature is not enabled. To trace everything
+specify .* as the regex.
+""")
 ]
 
 input_scenario_group = cfg.OptGroup(name="input-scenario",
@@ -790,19 +858,36 @@ InputScenarioGroup = [
                     "to matching image names."),
 ]
 
+
 baremetal_group = cfg.OptGroup(name='baremetal',
                                title='Baremetal provisioning service options')
 
 BaremetalGroup = [
     cfg.StrOpt('catalog_type',
                default='baremetal',
-               help="Catalog type of the baremetal provisioning service."),
+               help="Catalog type of the baremetal provisioning service"),
+    cfg.BoolOpt('driver_enabled',
+                default=False,
+                help="Whether the Ironic nova-compute driver is enabled"),
     cfg.StrOpt('endpoint_type',
                default='publicURL',
                choices=['public', 'admin', 'internal',
                         'publicURL', 'adminURL', 'internalURL'],
                help="The endpoint type to use for the baremetal provisioning "
-                    "service."),
+                    "service"),
+    cfg.IntOpt('active_timeout',
+               default=300,
+               help="Timeout for Ironic node to completely provision"),
+    cfg.IntOpt('association_timeout',
+               default=10,
+               help="Timeout for association of Nova instance and Ironic "
+                    "node"),
+    cfg.IntOpt('power_timeout',
+               default=20,
+               help="Timeout for Ironic power transitions."),
+    cfg.IntOpt('unprovision_timeout',
+               default=20,
+               help="Timeout for unprovisioning an Ironic node.")
 ]
 
 cli_group = cfg.OptGroup(name='cli', title="cli Configuration Options")
@@ -846,6 +931,7 @@ def register_opts():
     register_opt_group(cfg.CONF, network_group, NetworkGroup)
     register_opt_group(cfg.CONF, network_feature_group,
                        NetworkFeaturesGroup)
+    register_opt_group(cfg.CONF, queuing_group, QueuingGroup)
     register_opt_group(cfg.CONF, volume_group, VolumeGroup)
     register_opt_group(cfg.CONF, volume_feature_group,
                        VolumeFeaturesGroup)
@@ -897,6 +983,7 @@ class TempestConfigPrivate(object):
             'object-storage-feature-enabled']
         self.database = cfg.CONF.database
         self.orchestration = cfg.CONF.orchestration
+        self.queuing = cfg.CONF.queuing
         self.telemetry = cfg.CONF.telemetry
         self.dashboard = cfg.CONF.dashboard
         self.data_processing = cfg.CONF.data_processing

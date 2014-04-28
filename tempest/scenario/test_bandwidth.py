@@ -260,21 +260,10 @@ class TestNetworkTwoVms(manager.NetworkScenarioTest):
         p1 = subprocess.Popen(cmd)
         p1.wait()
 
-    def _check_bandwidth(self):
-        ssh_login = CONF.compute.image_ssh_user
-        for floating_ip_tuple in self.floating_ip_tuple_list:
-            floating_ip, server = floating_ip_tuple
-            ip_address = floating_ip.floating_ip_address
-            private_key = self.servers[server].private_key
-            try:
-                self._linux_cl(ssh_login, ip_address, private_key)
-            except Exception:
-                LOG.exception('Iperf checking failed')
-                self._log_console_output(servers=self.servers.keys())
-                debug.log_net_debug()
-                raise
-
     def _check_vms_bandwidth(self):
+        """
+        Test bandwidth between each two VMs in the network
+        """
         client_ssh_login = server_ssh_login = CONF.compute.image_ssh_user
         for floating_ip_tuple in list(self.floating_ip_tuple_list):
             server_ip_address = floating_ip_tuple.floating_ip.floating_ip_address
@@ -287,7 +276,7 @@ class TestNetworkTwoVms(manager.NetworkScenarioTest):
 
     @test.attr(type='smoke')
     @test.services('compute', 'network')
-    def test_network_basic_ops(self):
+    def test_network_bandwidth_ops(self):
         self._check_public_network_connectivity(should_connect=True)
 
         self._check_network_internal_connectivity(network=self.network)

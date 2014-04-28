@@ -2,17 +2,17 @@
 # Copyright 2013 IBM Corp.
 # All Rights Reserved.
 #
-# Licensed under the Apache License, Version 2.0 (the "License"); you may
-# not use this file except in compliance with the License. You may obtain
-# a copy of the License at
+#    Licensed under the Apache License, Version 2.0 (the "License"); you may
+#    not use this file except in compliance with the License. You may obtain
+#    a copy of the License at
 #
-# http://www.apache.org/licenses/LICENSE-2.0
+#         http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-# License for the specific language governing permissions and limitations
-# under the License.
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+#    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+#    License for the specific language governing permissions and limitations
+#    under the License.
 
 import logging
 import os
@@ -33,7 +33,6 @@ from tempest import config
 from tempest import exceptions
 from tempest.openstack.common import log
 import tempest.test
-import pdb
 
 CONF = config.CONF
 
@@ -49,16 +48,16 @@ LOG_cinder_client.addHandler(log.NullHandler())
 
 class OfficialClientTest(tempest.test.BaseTestCase):
     """
-Official Client test base class for scenario testing.
+    Official Client test base class for scenario testing.
 
-Official Client tests are tests that have the following characteristics:
+    Official Client tests are tests that have the following characteristics:
 
-* Test basic operations of an API, typically in an order that
-a regular user would perform those operations
-* Test only the correct inputs and action paths -- no fuzz or
-random input data is sent, only valid inputs.
-* Use only the default client tool for calling an API
-"""
+     * Test basic operations of an API, typically in an order that
+       a regular user would perform those operations
+     * Test only the correct inputs and action paths -- no fuzz or
+       random input data is sent, only valid inputs.
+     * Use only the default client tool for calling an API
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -73,11 +72,13 @@ random input data is sent, only valid inputs.
             username, password, tenant_name)
         cls.compute_client = cls.manager.compute_client
         cls.image_client = cls.manager.image_client
+        cls.baremetal_client = cls.manager.baremetal_client
         cls.identity_client = cls.manager.identity_client
         cls.network_client = cls.manager.network_client
         cls.volume_client = cls.manager.volume_client
         cls.object_storage_client = cls.manager.object_storage_client
         cls.orchestration_client = cls.manager.orchestration_client
+        cls.data_processing_client = cls.manager.data_processing_client
         cls.resource_keys = {}
         cls.os_resources = []
 
@@ -234,7 +235,7 @@ random input data is sent, only valid inputs.
                 raise exceptions.BuildErrorException(message,
                                                      server_id=thing_id)
             elif new_status == expected_status and expected_status is not None:
-                return True # All good.
+                return True  # All good.
             LOG.debug("Waiting for %s to get to %s status. "
                       "Currently in %s status",
                       thing, log_status, new_status)
@@ -282,7 +283,6 @@ random input data is sent, only valid inputs.
                 'to_port': 5001,
                 'cidr': '0.0.0.0/0',
             }
-
         ]
         rules = list()
         for ruleset in rulesets:
@@ -293,7 +293,7 @@ random input data is sent, only valid inputs.
         return rules
 
     def create_server(self, client=None, name=None, image=None, flavor=None,
-                      create_kwargs={}):
+                      wait=True, create_kwargs={}):
         if client is None:
             client = self.compute_client
         if name is None:
@@ -328,7 +328,8 @@ random input data is sent, only valid inputs.
         server = client.servers.create(name, image, flavor, **create_kwargs)
         self.assertEqual(server.name, name)
         self.set_resource(name, server)
-        self.status_timeout(client.servers, server.id, 'ACTIVE')
+        if wait:
+            self.status_timeout(client.servers, server.id, 'ACTIVE')
         # The instance retrieved on creation is missing network
         # details, necessitating retrieval after it becomes active to
         # ensure correct details.
@@ -382,7 +383,6 @@ random input data is sent, only valid inputs.
         return keypair
 
     def get_remote_client(self, server_or_ip, username=None, private_key=None):
-        LOG.debug('Continue11')
         if isinstance(server_or_ip, six.string_types):
             ip = server_or_ip
         else:
@@ -448,6 +448,82 @@ random input data is sent, only valid inputs.
                                             path=ami_img_path,
                                             properties=properties)
         LOG.debug("image:%s" % self.image)
+
+
+class BaremetalScenarioTest(OfficialClientTest):
+    @classmethod
+    def setUpClass(cls):
+        super(BaremetalScenarioTest, cls).setUpClass()
+
+        if (not CONF.service_available.ironic or
+           not CONF.baremetal.driver_enabled):
+            msg = 'Ironic not available or Ironic compute driver not enabled'
+            raise cls.skipException(msg)
+
+        # use an admin client manager for baremetal client
+        username, password, tenant = cls.admin_credentials()
+        manager = clients.OfficialClientManager(username, password, tenant)
+        cls.baremetal_client = manager.baremetal_client
+
+        # allow any issues obtaining the node list to raise early
+        cls.baremetal_client.node.list()
+
+    def _node_state_timeout(self, node_id, state_attr,
+                            target_states, timeout=10, interval=1):
+        if not isinstance(target_states, list):
+            target_states = [target_states]
+
+        def check_state():
+            node = self.get_node(node_id=node_id)
+            if getattr(node, state_attr) in target_states:
+                return True
+            return False
+
+        if not tempest.test.call_until_true(
+            check_state, timeout, interval):
+            msg = ("Timed out waiting for node %s to reach %s state(s) %s" %
+                   (node_id, state_attr, target_states))
+            raise exceptions.TimeoutException(msg)
+
+    def wait_provisioning_state(self, node_id, state, timeout):
+        self._node_state_timeout(
+            node_id=node_id, state_attr='provision_state',
+            target_states=state, timeout=timeout)
+
+    def wait_power_state(self, node_id, state):
+        self._node_state_timeout(
+            node_id=node_id, state_attr='power_state',
+            target_states=state, timeout=CONF.baremetal.power_timeout)
+
+    def wait_node(self, instance_id):
+        """Waits for a node to be associated with instance_id."""
+        from ironicclient import exc as ironic_exceptions
+
+        def _get_node():
+            node = None
+            try:
+                node = self.get_node(instance_id=instance_id)
+            except ironic_exceptions.HTTPNotFound:
+                pass
+            return node is not None
+
+        if not tempest.test.call_until_true(
+            _get_node, CONF.baremetal.association_timeout, 1):
+            msg = ('Timed out waiting to get Ironic node by instance id %s'
+                   % instance_id)
+            raise exceptions.TimeoutException(msg)
+
+    def get_node(self, node_id=None, instance_id=None):
+        if node_id:
+            return self.baremetal_client.node.get(node_id)
+        elif instance_id:
+            return self.baremetal_client.node.get_by_instance_uuid(instance_id)
+
+    def get_ports(self, node_id):
+        ports = []
+        for port in self.baremetal_client.node.list_ports(node_id):
+            ports.append(self.baremetal_client.port.get(port.uuid))
+        return ports
 
 
 class NetworkScenarioTest(OfficialClientTest):
@@ -533,7 +609,7 @@ class NetworkScenarioTest(OfficialClientTest):
         def cidr_in_use(cidr, tenant_id):
             """
             :return True if subnet with cidr already exist in tenant
-            False else
+                False else
             """
             cidr_in_use = self._list_subnets(tenant_id=tenant_id, cidr=cidr)
             return len(cidr_in_use) != 0
@@ -696,11 +772,11 @@ class NetworkScenarioTest(OfficialClientTest):
         :param username: server's ssh username
         :param private_key: server's ssh private key to be used
         :param should_connect: True/False indicates positive/negative test
-        positive - attempt ping and ssh
-        negative - attempt ping and fail if succeed
+            positive - attempt ping and ssh
+            negative - attempt ping and fail if succeed
 
         :raises: AssertError if the result of the connectivity check does
-        not match the value of the should_connect param
+            not match the value of the should_connect param
         """
         if should_connect:
             msg = "Timed out waiting for %s to become reachable" % ip_address
@@ -718,7 +794,12 @@ class NetworkScenarioTest(OfficialClientTest):
 
     def _check_between_vms_bandwidth(self, server_ip_address, server_private_key, server_ssh_login, client_ip_address,
                                      client_private_key, client_ssh_login):
-
+        """
+        First, get ssh client of the client and the server,
+         Then, install iprf on each machine
+         Then, run iperf on server mode on the server and on client mode on the client and get bandwidth
+         Finally test if bandwidth isn't null
+        """
         server_ssh = self.get_remote_client(server_ip_address, server_ssh_login, server_private_key)
         server = iperf(status='Server', server_ssh=server_ssh)
         server.start()
@@ -780,7 +861,6 @@ class NetworkScenarioTest(OfficialClientTest):
 
         # Add rules to the security group
         rules = self._create_loginable_secgroup_rule_neutron(secgroup=secgroup)
-
         for rule in rules:
             self.assertEqual(tenant_id, rule.tenant_id)
             self.assertEqual(secgroup.id, rule.security_group_id)
@@ -791,8 +871,8 @@ class NetworkScenarioTest(OfficialClientTest):
         """Create a security group without rules.
 
         Default rules will be created:
-        - IPv4 egress to any
-        - IPv6 egress to any
+         - IPv4 egress to any
+         - IPv6 egress to any
 
         :param tenant_id: secgroup will be created in this tenant
         :returns: DeletableSecurityGroup -- containing the secgroup created
@@ -839,23 +919,23 @@ class NetworkScenarioTest(OfficialClientTest):
                                     tenant_id=None, **kwargs):
         """Create a rule from a dictionary of rule parameters.
 
-Create a rule in a secgroup. if secgroup not defined will search for
-default secgroup in tenant_id.
+        Create a rule in a secgroup. if secgroup not defined will search for
+        default secgroup in tenant_id.
 
-:param secgroup: type DeletableSecurityGroup.
-:param secgroup_id: search for secgroup by id
-default -- choose default secgroup for given tenant_id
-:param tenant_id: if secgroup not passed -- the tenant in which to
-search for default secgroup
-:param kwargs: a dictionary containing rule parameters:
-for example, to allow incoming ssh:
-rule = {
-direction: 'ingress'
-protocol:'tcp',
-port_range_min: 22,
-port_range_max: 22
-}
-"""
+        :param secgroup: type DeletableSecurityGroup.
+        :param secgroup_id: search for secgroup by id
+            default -- choose default secgroup for given tenant_id
+        :param tenant_id: if secgroup not passed -- the tenant in which to
+            search for default secgroup
+        :param kwargs: a dictionary containing rule parameters:
+            for example, to allow incoming ssh:
+            rule = {
+                    direction: 'ingress'
+                    protocol:'tcp',
+                    port_range_min: 22,
+                    port_range_max: 22
+                    }
+        """
         if client is None:
             client = self.network_client
         if secgroup is None:
