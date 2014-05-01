@@ -27,7 +27,7 @@ from tempest.openstack.common import log as logging
 from tempest.scenario import manager
 from tempest import test
 from collections import deque
-import pdb
+
 
 CONF = config.CONF
 LOG = logging.getLogger(__name__)
@@ -196,14 +196,12 @@ class TestNetworkTwoVms(manager.NetworkScenarioTest):
 
     def _ping_from_router(self, ip_address):
         cmd_string = "sudo ip netns exec "+ "qrouter-" + str(self.router.id) + " " + "ping -c1 -w1 " + ip_address
-        LOG.debug(cmd_string)
         def ping():
             cmd = cmd_string.split(' ')
             proc = subprocess.Popen(cmd,
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
             proc.wait()
-            LOG.debug(proc.returncode)
             return (proc.returncode == 0) == True
         return test.call_until_true(ping, CONF.compute.ping_timeout, 1)
 
@@ -260,10 +258,19 @@ class TestNetworkTwoVms(manager.NetworkScenarioTest):
         p1 = subprocess.Popen(cmd)
         p1.wait()
 
+    def _installing_iperf(self):
+        ssh_login = CONF.compute.image_ssh_user
+        for floating_ip_tuple in list(self.floating_ip_tuple_list):
+            server_ip_address = floating_ip_tuple.floating_ip.floating_ip_address
+            server_private_key = self.servers[floating_ip_tuple.server].private_key
+            self._install_iperf(server_ip_address, ssh_login, server_private_key)
+
+
     def _check_vms_bandwidth(self):
         """
         Test bandwidth between each two VMs in the network
         """
+        self._installing_iperf()
         client_ssh_login = server_ssh_login = CONF.compute.image_ssh_user
         for floating_ip_tuple in list(self.floating_ip_tuple_list):
             server_ip_address = floating_ip_tuple.floating_ip.floating_ip_address

@@ -20,7 +20,7 @@ import six
 import subprocess
 import threading
 import netaddr
-from iperf import iperf
+from iperf import Iperf
 from neutronclient.common import exceptions as exc
 from novaclient import exceptions as nova_exceptions
 
@@ -788,6 +788,15 @@ class NetworkScenarioTest(OfficialClientTest):
                                                   private_key)
             linux_client.validate_authentication()
 
+    def _install_iperf(self, ip_address, ssh_login, private_key):
+        try:
+            ssh_client = self.get_remote_client(ip_address, ssh_login, private_key)
+            install = Iperf(status='Server', client_ssh=ssh_client)
+            install._install_iperf()
+        except exceptions.SSHExecCommandFailed:
+            LOG.exception('Iperf installation failed')
+            raise
+
     def _check_between_vms_bandwidth(self, server_ip_address, server_private_key, server_ssh_login, client_ip_address,
                                      client_private_key, client_ssh_login):
         """
@@ -797,11 +806,11 @@ class NetworkScenarioTest(OfficialClientTest):
          Finally test if bandwidth isn't null
         """
         server_ssh = self.get_remote_client(server_ip_address, server_ssh_login, server_private_key)
-        server = iperf(status='Server', server_ssh=server_ssh)
+        server = Iperf(status='Server', client_ssh=server_ssh)
         server.start()
-        server.join(300)
+        server.join(150)
         client_ssh = self.get_remote_client(client_ip_address, client_ssh_login, client_private_key)
-        client = iperf(status='Client', ip_address=server_ip_address, client_ssh=client_ssh)
+        client = Iperf(status='Client', ip_address=server_ip_address, client_ssh=client_ssh)
         client.start()
         client.join()
         subprocess.call(["echo", str(client.result())])
